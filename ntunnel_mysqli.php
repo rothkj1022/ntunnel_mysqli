@@ -1,16 +1,30 @@
 <?php	//version my201
 
+define('DEBUG_MODE', FALSE);
+
 //set allowTestMenu to false to disable System/Server test page
 $allowTestMenu = true;
+$testMenu = false;
+
+if (DEBUG_MODE) {
+	//trigger_error("Custom user notice", E_USER_NOTICE);
+	error_log('POST Array: '.print_r($_POST, true));
+	error_reporting(E_ALL);
+	set_time_limit(5);
+} else {
+	error_reporting(0);
+	set_time_limit(0);
+}
+//set_magic_quotes_runtime(0);
 
 header("Content-Type: text/plain; charset=x-user-defined");
-//error_reporting(0);
-set_time_limit(0);
-//set_magic_quotes_runtime(0);
 
 function phpversion_int()
 {
-	list($maVer, $miVer, $edVer) = preg_split("[/.-]", phpversion());
+	$php = preg_split("/[\/\.-]/", phpversion());
+	$maVer = $php[0];
+	$miVer = $php[1];
+	$edVer = $php[2];
 	return $maVer*10000 + $miVer*100 + $edVer;
 }
 
@@ -46,6 +60,9 @@ function EchoHeader($errno)
 	$str = GetLongBinary(1111);
 	$str .= GetShortBinary(201);
 	$str .= GetLongBinary($errno);
+	if (DEBUG_MODE) {
+		error_log('EchoHeader ($errno): '.$errno);
+	}
 	$str .= GetDummy(6);
 	echo $str;
 }
@@ -53,18 +70,42 @@ function EchoHeader($errno)
 function EchoConnInfo($conn)
 {
 	$str = GetBlock(mysqli_get_host_info($conn));
+	if (DEBUG_MODE) {
+		error_log('EchoConnInfo (mysqli_get_host_info($conn)): '.mysqli_get_host_info($conn));
+	}
 	$str .= GetBlock(mysqli_get_proto_info($conn));
+	if (DEBUG_MODE) {
+		error_log('EchoConnInfo (mysqli_get_proto_info($conn)): '.mysqli_get_proto_info($conn));
+	}
 	$str .= GetBlock(mysqli_get_server_info($conn));
+	if (DEBUG_MODE) {
+		error_log('EchoConnInfo (mysqli_get_server_info($conn)): '.mysqli_get_server_info($conn));
+	}
 	echo $str;
 }
 
 function EchoResultSetHeader($errno, $affectrows, $insertid, $numfields, $numrows)
 {
 	$str = GetLongBinary($errno);
+	if (DEBUG_MODE) {
+		error_log('EchoResultSetHeader ($errno): '.$errno);
+	}
 	$str .= GetLongBinary($affectrows);
+	if (DEBUG_MODE) {
+		error_log('EchoResultSetHeader ($affectrows): '.$affectrows);
+	}
 	$str .= GetLongBinary($insertid);
+	if (DEBUG_MODE) {
+		error_log('EchoResultSetHeader ($insertid): '.$insertid);
+	}
 	$str .= GetLongBinary($numfields);
+	if (DEBUG_MODE) {
+		error_log('EchoResultSetHeader ($numfields): '.$numfields);
+	}
 	$str .= GetLongBinary($numrows);
+	if (DEBUG_MODE) {
+		error_log('EchoResultSetHeader ($numrows): '.$numrows);
+	}
 	$str .= GetDummy(12);
 	echo $str;
 }
@@ -75,55 +116,28 @@ function EchoFieldsHeader($res, $numfields)
 	for( $i = 0; $i < $numfields; $i++ ) {
 		$finfo = mysqli_fetch_field_direct($res, $i);
 		$str .= GetBlock($finfo->name);
-		$str .= GetBlock($finfo->table);
-
-		$type = $finfo->type;
-		$length = $finfo->length;
-		switch ($type) {
-			case "int":
-				if( $length > 11 ) $type = 8;
-				elseif( $length > 9 ) $type = 3;
-				elseif( $length > 6 ) $type = 9;
-				elseif( $length > 4 ) $type = 2;
-				else $type = 1;
-				break;
-			case "real":
-				if( $length == 12 ) $type = 4;
-				elseif( $length == 22 ) $type = 5;
-				else $type = 0;
-				break;
-			case "null":
-				$type = 6;
-				break;
-			case "timestamp":
-				$type = 7;
-				break;
-			case "date":
-				$type = 10;
-				break;
-			case "time":
-				$type = 11;
-				break;
-			case "datetime":
-				$type = 12;
-				break;
-			case "year":
-				$type = 13;
-				break;
-			case "blob":
-				if( $length > 16777215 ) $type = 251;
-				elseif( $length > 65535 ) $type = 250;
-				elseif( $length > 255 ) $type = 252;
-				else $type = 249;
-				break;
-			default:
-				$type = 253;
+		if (DEBUG_MODE) {
+			error_log('EchoFieldsHeader ($finfo->name): '.$finfo->name);
 		}
-		$str .= GetLongBinary($type);
+		$str .= GetBlock($finfo->table);
+		if (DEBUG_MODE) {
+			error_log('EchoFieldsHeader ($finfo->table): '.$finfo->table);
+		}
+
+		$str .= GetLongBinary($finfo->type);
+		if (DEBUG_MODE) {
+			error_log('EchoFieldsHeader ($finfo->type): '.$finfo->type);
+		}
 
 		$str .= GetLongBinary($finfo->flags);
+		if (DEBUG_MODE) {
+			error_log('EchoFieldsHeader ($finfo->flags): '.$finfo->flags);
+		}
 
-		$str .= GetLongBinary($length);
+		$str .= GetLongBinary($finfo->length);
+		if (DEBUG_MODE) {
+			error_log('EchoFieldsHeader ($finfo->length): '.$finfo->length);
+		}
 	}
 	echo $str;
 }
@@ -134,10 +148,14 @@ function EchoData($res, $numfields, $numrows)
 		$str = "";
 		$row = mysqli_fetch_row( $res );
 		for( $j = 0; $j < $numfields; $j++ ){
-			if( is_null($row[$j]) )
+			if( is_null($row[$j]) ) {
 				$str .= "\xFF";
-			else
+			} else {
 				$str .= GetBlock($row[$j]);
+				if (DEBUG_MODE) {
+					error_log('EchoData ($row['.$j.']): '.$row[$j]);
+				}
+			}
 		}
 		echo $str;
 	}
@@ -151,7 +169,7 @@ if (phpversion_int() < 40005) {
 
 if (phpversion_int() < 40010) {
 	global $HTTP_POST_VARS;
-	$_POST = &$HTTP_POST_VARS;	
+	$_POST = &$HTTP_POST_VARS;
 }
 
 if (!isset($_POST["actn"]) || !isset($_POST["host"]) || !isset($_POST["port"]) || !isset($_POST["login"])) {
@@ -168,13 +186,13 @@ if (!$testMenu){
 		for($i=0;$i<count($_POST["q"]);$i++)
 			$_POST["q"][$i] = base64_decode($_POST["q"][$i]);
 	}
-		
+
 	if (!function_exists("mysqli_connect")) {
 		EchoHeader(203);
 		echo GetBlock("MySQL not supported on the server");
 		exit();
 	}
-		
+
 	$errno_c = 0;
 	$hs = $_POST["host"];
 	if( $_POST["port"] ) $hs .= ":".$_POST["port"];
@@ -362,7 +380,7 @@ header("Content-Type: text/html");
 		var version = getInternetExplorerVersion();
 		if (version==-1 || version>=9.0){
 			var xmlhttp = (window.XMLHttpRequest)? new XMLHttpRequest() : xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-			
+
 			xmlhttp.onreadystatechange=function(){
 				var outputDiv = document.getElementById("ServerTest");
 				if (xmlhttp.readyState == 4){
@@ -376,14 +394,14 @@ header("Content-Type: text/html");
 						setText(outputDiv, "HTTP Error - "+xmlhttp.status, false);
 				}
 			}
-			
+
 			var params = "";
 			var form = document.getElementById("TestServerForm");
 			for (var i=0; i<form.elements.length; i++){
 				if (i>0) params += "&";
 				params += form.elements[i].id+"="+form.elements[i].value.replace("&", "%26");
 			}
-			
+
 			document.getElementById("ServerTest").className = "";
 			document.getElementById("ServerTest").innerHTML = "Connecting...";
 			xmlhttp.open("POST", "", true);
