@@ -1,4 +1,17 @@
-<?php	//version my201
+<?php
+/**
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+*      Navicat® tunnel script with mysqli
+*      Based on ntunnel_mysql.php by PremiumSoft™ CyberTech Ltd
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* @version 1.0.2
+* @package ntunnel_mysqli
+* @author Kevin Roth
+*
+*/
 
 define('DEBUG_MODE', FALSE);
 
@@ -199,7 +212,7 @@ if (!$testMenu){
 	$conn = mysqli_connect($hs, $_POST["login"], $_POST["password"]);
 	$errno_c = mysqli_connect_errno();
 	if(($errno_c <= 0) && ( $_POST["db"] != "" )) {
-		$res = mysqli_select_db( $_POST["db"], $conn);
+		$res = mysqli_select_db($conn, $_POST["db"]);
 		$errno_c = mysqli_errno($conn);
 	}
 
