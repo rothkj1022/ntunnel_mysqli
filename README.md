@@ -1,3 +1,8 @@
+# NOTICE
+*11/6/2017 - It is no longer recommended to use this script, now that Navicat ships an updated ntunnel_mysql.php script with Navicat for MySQL 12+.  To get the newer script, follow [these instructions](https://help.navicat.com/hc/en-us/articles/218283457-Where-can-i-get-the-HTTP-tunnel-script-file-).*
+
+---
+
 # ntunnel_mysqli
 
 This is an updated tunnel script for connecting to MySQL and MariaDB databases with Navicat for MySQL via mysqli.  The ntunnel_mysql.php script that comes with current versions of Navicat (as of 10/18/2016) will not work with PHP7, as procedural mysql functions have been deprecated.
